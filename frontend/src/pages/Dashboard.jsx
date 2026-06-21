@@ -44,7 +44,7 @@ const Dashboard = () => {
 
   const fetchRides = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/rides/available', {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides/available`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setRides(res.data);
@@ -55,7 +55,7 @@ const Dashboard = () => {
 
   const handleAccept = async (rideId) => {
     try {
-      await axios.put(`http://localhost:5000/api/rides/${rideId}/status`, { status: 'Accepted' }, {
+      await axios.put(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides/${rideId}/status`, { status: 'Accepted' }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       // The socket event will trigger the removal from this list
@@ -67,7 +67,7 @@ const Dashboard = () => {
   const handlePayPremium = async () => {
     setPaying(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/payments/premium', {}, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/payments/premium`, {}, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       alert(res.data.message);

@@ -7,7 +7,7 @@ import { Phone, User, KeyRound, Navigation } from 'lucide-react';
 import ActiveRideMap from '../components/ActiveRideMap';
 import RideChat from '../components/RideChat';
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api`;
 
 const ACTIVE_STATUSES = ['Accepted', 'Arrived', 'Ongoing'];
 

@@ -25,7 +25,7 @@ const BookRide = () => {
       const finalFare = rideDetails.fare * seats; // Fare scales by seats? Wait, fare in estimator is for 1 seat. Let's assume standard fare. 
       // Actually Ola/Uber price is per vehicle. If they want seats, maybe it's a shared pool. Let's multiply fare by seats for simplicity or keep base fare. Let's multiply.
       
-      await axios.post('http://localhost:5000/api/rides', {
+      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides`, {
         pickup: rideDetails.pickupText,
         pickupCoords: rideDetails.pickup,
         drop: rideDetails.dropText,

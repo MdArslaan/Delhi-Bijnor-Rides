@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api`;
 
 const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
   const [messages, setMessages] = useState([]);
