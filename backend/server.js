@@ -12,57 +12,63 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io configuration
 const io = new Server(server, {
-  cors: {
-    origin: '*', // In production, restrict this to frontend URL
-    methods: ['GET', 'POST']
-  }
+cors: {
+origin: '*',
+methods: ['GET', 'POST']
+}
 });
 
-// Pass io to request object so controllers can access it if needed
 app.use((req, res, next) => {
-  req.io = io;
-  next();
+req.io = io;
+next();
 });
 
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Root Route
+app.get('/', (req, res) => {
+res.send('Delhi Bijnor Rides Backend Running');
+});
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/payments', paymentRoutes);
 
 io.on('connection', (socket) => {
-  console.log('User connected via Socket.io:', socket.id);
+console.log('User connected:', socket.id);
 
-  socket.on('join_ride', (rideId) => {
-    if (rideId) {
-      socket.join(`ride_${rideId}`);
-    }
-  });
-
-  socket.on('leave_ride', (rideId) => {
-    if (rideId) {
-      socket.leave(`ride_${rideId}`);
-    }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
+socket.on('join_ride', (rideId) => {
+if (rideId) {
+socket.join(`ride_${rideId}`);
+}
 });
 
-// Database connection
+socket.on('leave_ride', (rideId) => {
+if (rideId) {
+socket.leave(`ride_${rideId}`);
+}
+});
+
+socket.on('disconnect', () => {
+console.log('User disconnected:', socket.id);
+});
+});
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Error connecting to MongoDB:', err.message);
-  });
+.then(() => {
+console.log('Connected to MongoDB');
+
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
+})
+.catch((err) => {
+console.error('MongoDB Connection Error:', err.message);
+});
