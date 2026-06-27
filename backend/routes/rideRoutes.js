@@ -8,6 +8,7 @@ const {
   updateDriverLocation,
   markDriverArrived,
   verifyOtp,
+  getRideOtp,
 } = require('../controllers/rideController');
 const { getMessages, sendMessage } = require('../controllers/messageController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -15,6 +16,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.post('/', protect, authorize('Passenger'), createRide);
 router.get('/available', protect, authorize('Driver'), getDriverRides);
 router.get('/my-rides', protect, getMyRides);
+router.get('/:id/otp', protect, getRideOtp);
 router.put('/:id/status', protect, updateRideStatus);
 router.put('/:id/location', protect, authorize('Driver'), updateDriverLocation);
 router.post('/:id/arrived', protect, authorize('Driver'), markDriverArrived);

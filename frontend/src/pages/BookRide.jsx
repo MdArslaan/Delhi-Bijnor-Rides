@@ -11,8 +11,8 @@ const BookRide = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
-  const [seats, setSeats] = useState(1);
   const [rideDetails, setRideDetails] = useState(location.state?.rideDetails || null);
+  const [seats, setSeats] = useState(location.state?.rideDetails?.seats || 1);
 
   // If no ride details from Home, user will use the Map Estimator here.
 
@@ -25,7 +25,7 @@ const BookRide = () => {
       const finalFare = rideDetails.fare * seats; // Fare scales by seats? Wait, fare in estimator is for 1 seat. Let's assume standard fare. 
       // Actually Ola/Uber price is per vehicle. If they want seats, maybe it's a shared pool. Let's multiply fare by seats for simplicity or keep base fare. Let's multiply.
       
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides`, {
+      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/rides`, {
         pickup: rideDetails.pickupText,
         pickupCoords: rideDetails.pickup,
         drop: rideDetails.dropText,
@@ -48,10 +48,13 @@ const BookRide = () => {
 
   const handleBookReady = (details) => {
     setRideDetails(details);
+    if (details?.seats) {
+      setSeats(details.seats);
+    }
   };
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-brand-dark flex flex-col items-center p-6 relative overflow-hidden">
+    <div className="min-h-[calc(100vh-64px)] bg-brand-dark flex flex-col items-center px-3 py-5 sm:p-6 relative overflow-hidden">
       <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-brand-accent/20 rounded-full blur-[150px] pointer-events-none"></div>
       
       <motion.div 
@@ -59,7 +62,7 @@ const BookRide = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-5xl z-10"
       >
-        <h2 className="text-4xl font-extrabold mb-8 text-center tracking-tight text-white">
+        <h2 className="text-2xl sm:text-4xl font-extrabold mb-5 sm:mb-8 text-center tracking-tight text-white">
           <span className="text-glow text-brand-accent">Book</span> Your Ride
         </h2>
         
@@ -73,7 +76,7 @@ const BookRide = () => {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5 md:p-8 rounded-2xl w-[95%] max-w-lg mx-auto border border-brand-accent/30"
+            className="glass-card p-4 sm:p-8 rounded-2xl w-full max-w-lg mx-auto border border-brand-accent/30"
           >
             <div className="mb-6 flex flex-col gap-4">
               <div className="bg-white/5 p-4 rounded-xl border border-white/10">
@@ -88,13 +91,13 @@ const BookRide = () => {
 
             <form onSubmit={handleFinalBook} className="flex flex-col gap-5">
               <div>
-                <label className="block text-gray-400 text-xs uppercase mb-2">Number of Seats / Vehicles</label>
+                <label className="block text-gray-400 text-xs uppercase mb-2">Number of Persons</label>
                 <select 
                   value={seats} 
                   onChange={(e) => setSeats(Number(e.target.value))} 
                   className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:border-brand-accent focus:outline-none transition-colors appearance-none"
                 >
-                  {[1, 2, 3, 4, 5, 6].map(num => <option key={num} value={num} className="bg-brand-dark">{num} Seat{num > 1 ? 's' : ''}</option>)}
+                  {[1, 2, 3, 4, 5, 6].map(num => <option key={num} value={num} className="bg-brand-dark">{num} Person{num > 1 ? 's' : ''}</option>)}
                 </select>
               </div>
 
@@ -106,6 +109,7 @@ const BookRide = () => {
                 <div className="flex flex-col items-end">
                   <span className="text-gray-400 text-xs uppercase">Total Fare</span>
                   <span className="text-3xl font-bold text-glow text-brand-accent">₹{rideDetails.fare * seats}</span>
+                  <span className="text-[10px] text-gray-500 mt-0.5">(₹{rideDetails.fare} per person)</span>
                 </div>
               </div>
 

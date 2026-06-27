@@ -13,8 +13,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const PRICE_PER_KM = 12;
-const BASE_FARE = 50;
+const FULL_DISTANCE_KM = 195.5;
+const FLAT_FARE_FULL_TRIP = 700;
 
 // Component to handle routing within React-Leaflet
 const RoutingMachine = ({ pickup, drop, onRouteCalculated }) => {
@@ -70,11 +70,17 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
   const [drop, setDrop] = useState(initialDrop || null);
   const [distance, setDistance] = useState(0);
   const [fare, setFare] = useState(0);
+  const [persons, setPersons] = useState('');
   
   const [pickupText, setPickupText] = useState('');
   const [dropText, setDropText] = useState('');
 
   const mapCenter = [28.6139, 77.2090]; // Default to Delhi
+
+  useEffect(() => {
+    // Reset persons when pickup or drop coordinates change
+    setPersons('');
+  }, [pickup, drop]);
 
   const geocodeAddress = async (address, type) => {
     try {
@@ -110,12 +116,13 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
 
   const handleRouteCalculated = (distKm) => {
     setDistance(distKm.toFixed(1));
-    const calculatedFare = Math.round(BASE_FARE + (distKm * PRICE_PER_KM));
-    setFare(calculatedFare);
+    // Calculate proportional price for one person based on a 700 INR flat rate for 195.5 km
+    const fareForOne = Math.round((distKm / FULL_DISTANCE_KM) * FLAT_FARE_FULL_TRIP);
+    setFare(fareForOne);
   };
 
   return (
-    <div className="w-full relative h-[450px] md:h-[600px] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+    <div className="w-full relative h-[min(70vh,520px)] sm:h-[500px] md:h-[600px] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
       {/* Map Layer */}
       <MapContainer center={mapCenter} zoom={11} className="w-full h-full" zoomControl={false}>
         <TileLayer
@@ -130,11 +137,11 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
       </MapContainer>
 
       {/* Floating UI Overlays */}
-      <div className="absolute top-4 left-0 right-0 mx-auto w-[90%] md:w-80 md:mx-0 md:left-4 md:right-auto z-[1000] flex flex-col gap-3">
+      <div className="absolute top-3 sm:top-4 left-0 right-0 mx-auto w-[94%] sm:w-[90%] md:w-80 md:mx-0 md:left-4 md:right-auto z-[1000] flex flex-col gap-2 sm:gap-3">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-4 rounded-xl flex flex-col gap-3 md:gap-4 shadow-xl backdrop-blur-xl"
+          className="glass-card p-3 sm:p-4 rounded-xl flex flex-col gap-2.5 sm:gap-4 shadow-xl backdrop-blur-xl"
         >
           <div className="relative">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -146,7 +153,7 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
               value={pickupText}
               onChange={(e) => setPickupText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && geocodeAddress(pickupText, 'pickup')}
-              className="w-full bg-white/10 border border-white/20 text-white pl-10 pr-10 py-3 rounded-lg focus:outline-none focus:border-brand-accent transition-colors"
+              className="w-full bg-white/10 border border-white/20 text-white pl-10 pr-10 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base focus:outline-none focus:border-brand-accent transition-colors"
             />
             <button onClick={useCurrentLocation} className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-brand-accent transition-colors">
               <Navigation size={18} />
@@ -163,7 +170,7 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
               value={dropText}
               onChange={(e) => setDropText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && geocodeAddress(dropText, 'drop')}
-              className="w-full bg-white/10 border border-white/20 text-white pl-10 py-3 rounded-lg focus:outline-none focus:border-brand-secondary transition-colors"
+              className="w-full bg-white/10 border border-white/20 text-white pl-10 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base focus:outline-none focus:border-brand-secondary transition-colors"
             />
           </div>
 
@@ -184,31 +191,72 @@ const MapPriceEstimator = ({ onBookReady, initialPickup, initialDrop }) => {
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-11/12 max-w-md glass-card p-5 rounded-2xl flex flex-col items-center border border-brand-accent/30"
+          className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[94%] sm:w-11/12 max-w-md glass-card p-4 sm:p-5 rounded-2xl flex flex-col items-center border border-brand-accent/30"
         >
-          <div className="flex justify-between w-full mb-4 px-2">
-            <div className="text-center">
+          <div className="w-full flex justify-between items-center mb-4 px-2">
+            <div className="text-left">
               <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Distance</span>
               <span className="text-xl font-bold text-white">{distance} <span className="text-sm font-normal">km</span></span>
             </div>
-            <div className="w-px bg-white/10 mx-4"></div>
-            <div className="text-center">
-              <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Est. Fare</span>
-              <span className="text-2xl font-bold text-glow text-brand-accent">₹{fare}</span>
+            <div className="w-px bg-white/10 h-10 mx-4"></div>
+            <div className="flex-1 max-w-[180px] text-right">
+              <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">No. of Persons</span>
+              <select
+                value={persons}
+                onChange={(e) => setPersons(e.target.value ? Number(e.target.value) : '')}
+                className="w-full p-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:border-brand-accent focus:outline-none transition-colors"
+              >
+                <option value="" className="bg-brand-dark text-gray-400">Select...</option>
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                  <option key={num} value={num} className="bg-brand-dark">
+                    {num} Person{num > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-          
-          {onBookReady && (
-            <button 
-              onClick={() => onBookReady({ pickup, drop, distance, fare, pickupText: pickupText || 'Map Location', dropText: dropText || 'Map Location' })}
-              className="w-full bg-brand-accent hover:bg-brand-accentHover text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(255,42,95,0.4)]"
+
+          {persons !== '' ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full flex flex-col items-center animate-fade-in"
             >
-              Request Ride Now
-            </button>
-          )}
-          {!onBookReady && (
-            <div className="text-xs text-gray-400 flex items-center gap-1 mt-2">
-              <Info size={12} /> Log in to book this ride
+              <div className="w-full h-px bg-white/10 my-3"></div>
+              
+              <div className="text-center mb-4">
+                <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Total Est. Fare</span>
+                <span className="text-3xl font-bold text-glow text-brand-accent">₹{fare * persons}</span>
+                <span className="block text-gray-500 text-[10px] mt-1">
+                  (₹{fare} per person)
+                </span>
+              </div>
+
+              {onBookReady && (
+                <button 
+                  onClick={() => onBookReady({ 
+                    pickup, 
+                    drop, 
+                    distance, 
+                    fare, 
+                    seats: persons, 
+                    pickupText: pickupText || 'Map Location', 
+                    dropText: dropText || 'Map Location' 
+                  })}
+                  className="w-full bg-brand-accent hover:bg-brand-accentHover text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(255,42,95,0.4)]"
+                >
+                  Request Ride Now
+                </button>
+              )}
+              {!onBookReady && (
+                <div className="text-xs text-gray-400 flex items-center gap-1 mt-2">
+                  <Info size={12} /> Log in to book this ride
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <div className="text-[11px] text-brand-accent/90 flex items-center gap-1.5 mt-1 font-medium bg-brand-accent/10 px-3 py-2 rounded-lg border border-brand-accent/20 w-full justify-center">
+              <Info size={14} className="shrink-0" /> Please select the number of persons to calculate the fare.
             </div>
           )}
         </motion.div>
