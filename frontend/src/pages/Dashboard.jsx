@@ -4,6 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { motion } from 'framer-motion';
 
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+
 const Dashboard = () => {
   const [rides, setRides] = useState([]);
   const [isPremium, setIsPremium] = useState(false);
@@ -28,9 +30,13 @@ const Dashboard = () => {
       });
       
       socket.on('ride_updated', (updatedRide) => {
-        if (updatedRide.status !== 'Requested') {
-          // Remove from available rides once it's no longer requested
-          setRides(prev => prev.filter(r => r._id !== updatedRide._id));
+        if (updatedRide.status === 'Requested') {
+          setRides((prev) => {
+            if (prev.some((r) => r._id === updatedRide._id)) return prev;
+            return [updatedRide, ...prev];
+          });
+        } else {
+          setRides((prev) => prev.filter((r) => r._id !== updatedRide._id));
         }
       });
     }
@@ -44,7 +50,7 @@ const Dashboard = () => {
 
   const fetchRides = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides/available`, {
+      const res = await axios.get(`${API}/rides/available`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setRides(res.data);
@@ -55,7 +61,7 @@ const Dashboard = () => {
 
   const handleAccept = async (rideId) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/rides/${rideId}/status`, { status: 'Accepted' }, {
+      await axios.put(`${API}/rides/${rideId}/status`, { status: 'Accepted' }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       // The socket event will trigger the removal from this list
@@ -67,7 +73,7 @@ const Dashboard = () => {
   const handlePayPremium = async () => {
     setPaying(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/payments/premium`, {}, {
+      const res = await axios.post(`${API}/payments/premium`, {}, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       alert(res.data.message);
@@ -112,25 +118,25 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-brand-dark p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">Available Rides</h2>
-        <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-sm text-brand-accent">
+    <div className="min-h-[calc(100vh-64px)] bg-brand-dark px-3 py-5 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5 sm:mb-6 max-w-4xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white">Available Rides</h2>
+        <div className="self-start bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-xs sm:text-sm text-brand-accent">
           Premium Active
         </div>
       </div>
       
       {rides.length === 0 ? (
-        <p className="text-center text-gray-400 mt-10">No rides currently requested. Waiting for passengers...</p>
+        <p className="text-center text-gray-400 mt-16 px-4 text-sm sm:text-base">No rides currently requested. Waiting for passengers...</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
           {rides.map((ride, index) => (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               key={ride._id} 
-              className="glass p-6 rounded-xl border border-white/10 shadow-lg flex flex-col relative overflow-hidden"
+              className="glass p-4 sm:p-6 rounded-xl border border-white/10 shadow-lg flex flex-col relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent"></div>
               <div className="flex justify-between items-start mb-4">
@@ -140,7 +146,7 @@ const Dashboard = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-glow text-brand-accent">₹{ride.fare}</p>
-                  <p className="text-sm text-gray-400">{ride.seats} Seat{ride.seats > 1 ? 's' : ''}</p>
+                  <p className="text-sm text-gray-400">{ride.seats} Person{ride.seats > 1 ? 's' : ''}</p>
                 </div>
               </div>
               
@@ -167,7 +173,7 @@ const Dashboard = () => {
               
               <button 
                 onClick={() => handleAccept(ride._id)}
-                className="mt-auto bg-brand-accent hover:bg-brand-accentHover text-white font-bold py-3 rounded-lg transition w-full shadow-[0_0_15px_rgba(255,42,95,0.3)]"
+                className="mt-auto bg-brand-accent hover:bg-brand-accentHover active:opacity-80 text-white font-bold py-3.5 rounded-lg transition w-full shadow-[0_0_15px_rgba(255,42,95,0.3)] text-sm sm:text-base"
               >
                 Accept Ride
               </button>

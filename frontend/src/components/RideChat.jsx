@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 
-const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api`;
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
 
 const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
   const [messages, setMessages] = useState([]);
@@ -104,7 +104,7 @@ const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
       {open && (
         <div className="mt-3 flex flex-col rounded-xl border border-white/10 bg-brand-dark/90 overflow-hidden">
           {/* Messages area */}
-          <div className="h-56 overflow-y-auto p-3 space-y-2">
+          <div className="h-48 sm:h-56 overflow-y-auto p-3 space-y-2">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-gray-500">
                 <MessageCircle size={32} className="opacity-30" />
