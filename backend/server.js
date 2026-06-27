@@ -37,14 +37,18 @@ const corsOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (corsOrigins.includes(origin)) return true;
+  // Allow all Vercel preview + production URLs
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
+  return true;
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || corsOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, true); // allow other origins during development
-      }
+      callback(null, isAllowedOrigin(origin));
     },
     credentials: true,
   })
