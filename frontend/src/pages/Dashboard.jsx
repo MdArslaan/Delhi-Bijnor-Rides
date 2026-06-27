@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { motion } from 'framer-motion';
 
-const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config/api';
 
 const Dashboard = () => {
   const [rides, setRides] = useState([]);
@@ -50,7 +50,7 @@ const Dashboard = () => {
 
   const fetchRides = async () => {
     try {
-      const res = await axios.get(`${API}/rides/available`, {
+      const res = await axios.get(`${API_URL}/rides/available`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setRides(res.data);
@@ -61,7 +61,7 @@ const Dashboard = () => {
 
   const handleAccept = async (rideId) => {
     try {
-      await axios.put(`${API}/rides/${rideId}/status`, { status: 'Accepted' }, {
+      await axios.put(`${API_URL}/rides/${rideId}/status`, { status: 'Accepted' }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       // The socket event will trigger the removal from this list
@@ -73,7 +73,7 @@ const Dashboard = () => {
   const handlePayPremium = async () => {
     setPaying(true);
     try {
-      const res = await axios.post(`${API}/payments/premium`, {}, {
+      const res = await axios.post(`${API_URL}/payments/premium`, {}, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       alert(res.data.message);

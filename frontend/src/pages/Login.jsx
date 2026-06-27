@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000'))}/api/auth`;
+import { AUTH_URL } from '../config/api';
+import { getApiErrorMessage } from '../lib/apiClient';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -119,7 +119,7 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/login`, { email: email.trim(), password });
+      const res = await axios.post(`${AUTH_URL}/login`, { email: email.trim(), password }, { timeout: 90000 });
       if (res.data.requiresOtp) {
         setPendingUserId(res.data.userId);
         setPendingEmail(res.data.email);
@@ -132,7 +132,7 @@ const Login = () => {
         navigate(res.data.role === 'Passenger' ? '/book' : '/dashboard');
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'The information entered is incorrect. Please check and try again.', 'error');
+      showToast(getApiErrorMessage(err, 'The information entered is incorrect. Please check and try again.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -143,12 +143,12 @@ const Login = () => {
     if (otp.length !== 6) { showToast('Please enter the complete 6-digit OTP.', 'error'); return; }
     setOtpLoading(true);
     try {
-      const res = await axios.post(`${API}/verify-otp`, { userId: pendingUserId, otp, purpose: 'login' });
+      const res = await axios.post(`${AUTH_URL}/verify-otp`, { userId: pendingUserId, otp, purpose: 'login' }, { timeout: 90000 });
       login(res.data);
       showToast('Login successful! Welcome back 👋', 'success');
       setTimeout(() => navigate(res.data.role === 'Passenger' ? '/book' : '/dashboard'), 700);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Invalid OTP. Please try again.', 'error');
+      showToast(getApiErrorMessage(err, 'Invalid OTP. Please try again.'), 'error');
       setOtp('');
     } finally {
       setOtpLoading(false);
@@ -159,12 +159,12 @@ const Login = () => {
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      await axios.post(`${API}/resend-otp`, { userId: pendingUserId, purpose: 'login' });
+      await axios.post(`${AUTH_URL}/resend-otp`, { userId: pendingUserId, purpose: 'login' }, { timeout: 90000 });
       setResendCooldown(60);
       setOtp('');
       showToast('A new OTP has been sent to your email.', 'info');
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to resend OTP.', 'error');
+      showToast(getApiErrorMessage(err, 'Failed to resend OTP.'), 'error');
     }
   };
 
