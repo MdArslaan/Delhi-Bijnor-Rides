@@ -126,9 +126,11 @@ exports.login = async (req, res) => {
     try {
       await sendOtpEmail(user.email, otp, 'login');
     } catch (mailErr) {
-      console.error('❌ Failed to send login OTP email:', mailErr.message, mailErr.stack);
+      console.error('❌ Failed to send login OTP email:', mailErr.message);
       return res.status(500).json({
-        message: 'Login credentials correct but failed to send OTP. Check EMAIL_USER / EMAIL_PASS in .env. Error: ' + mailErr.message,
+        message:
+          'Could not send OTP email. On Render, use a Gmail App Password for EMAIL_PASS and allow SMTP. Error: ' +
+          mailErr.message,
       });
     }
 

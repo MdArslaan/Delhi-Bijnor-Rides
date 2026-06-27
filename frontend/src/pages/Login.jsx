@@ -1,10 +1,8 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AUTH_URL } from '../config/api';
-import { getApiErrorMessage } from '../lib/apiClient';
+import { apiClient, getApiErrorMessage } from '../lib/apiClient';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -119,7 +117,7 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${AUTH_URL}/login`, { email: email.trim(), password }, { timeout: 90000 });
+      const res = await apiClient.post('/api/auth/login', { email: email.trim(), password });
       if (res.data.requiresOtp) {
         setPendingUserId(res.data.userId);
         setPendingEmail(res.data.email);
@@ -143,7 +141,7 @@ const Login = () => {
     if (otp.length !== 6) { showToast('Please enter the complete 6-digit OTP.', 'error'); return; }
     setOtpLoading(true);
     try {
-      const res = await axios.post(`${AUTH_URL}/verify-otp`, { userId: pendingUserId, otp, purpose: 'login' }, { timeout: 90000 });
+      const res = await apiClient.post('/api/auth/verify-otp', { userId: pendingUserId, otp, purpose: 'login' });
       login(res.data);
       showToast('Login successful! Welcome back 👋', 'success');
       setTimeout(() => navigate(res.data.role === 'Passenger' ? '/book' : '/dashboard'), 700);
@@ -159,7 +157,7 @@ const Login = () => {
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      await axios.post(`${AUTH_URL}/resend-otp`, { userId: pendingUserId, purpose: 'login' }, { timeout: 90000 });
+      await apiClient.post('/api/auth/resend-otp', { userId: pendingUserId, purpose: 'login' });
       setResendCooldown(60);
       setOtp('');
       showToast('A new OTP has been sent to your email.', 'info');
@@ -230,7 +228,7 @@ const Login = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                    Sending OTP…
+                    Connecting… (may take up to 60s)
                   </span>
                 ) : 'Login with OTP'}
               </button>
