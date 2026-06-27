@@ -7,7 +7,7 @@ import { Phone, User, KeyRound, Navigation, XCircle, CheckCircle, AlertTriangle 
 import ActiveRideMap from '../components/ActiveRideMap';
 import RideChat from '../components/RideChat';
 
-const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config/api';
 const ACTIVE_STATUSES = ['Accepted', 'Arrived', 'Ongoing'];
 
 const sameId = (a, b) => a?.toString() === b?.toString();
@@ -66,7 +66,7 @@ const MyRides = () => {
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchMyRides = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/rides/my-rides`, {
+      const res = await axios.get(`${API_URL}/rides/my-rides`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setRides(res.data);
@@ -87,7 +87,7 @@ const MyRides = () => {
     });
 
     try {
-      const res = await axios.get(`${API}/rides/${rideId}/otp`, {
+      const res = await axios.get(`${API_URL}/rides/${rideId}/otp`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setRides((prev) =>
@@ -178,7 +178,7 @@ const MyRides = () => {
     async (rideId, lat, lng, etaMinutes) => {
       try {
         await axios.put(
-          `${API}/rides/${rideId}/location`,
+          `${API_URL}/rides/${rideId}/location`,
           { lat, lng, etaMinutes },
           { headers: { Authorization: `Bearer ${user.token}` } }
         );
@@ -225,7 +225,7 @@ const MyRides = () => {
   const handleStatusUpdate = async (rideId, newStatus) => {
     try {
       await axios.put(
-        `${API}/rides/${rideId}/status`,
+        `${API_URL}/rides/${rideId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
@@ -237,7 +237,7 @@ const MyRides = () => {
 
   const handleMarkArrived = async (rideId) => {
     try {
-      await axios.post(`${API}/rides/${rideId}/arrived`, null, {
+      await axios.post(`${API_URL}/rides/${rideId}/arrived`, null, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       fetchMyRides();
@@ -251,7 +251,7 @@ const MyRides = () => {
     if (!otp?.trim()) { alert('Please enter the OTP from the passenger'); return; }
     try {
       await axios.post(
-        `${API}/rides/${rideId}/verify-otp`,
+        `${API_URL}/rides/${rideId}/verify-otp`,
         { otp: otp.trim() },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );

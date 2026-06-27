@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MapPriceEstimator from '../components/MapPriceEstimator';
 import { motion } from 'framer-motion';
+import { API_URL } from '../config/api';
 
 const BookRide = () => {
   const { user } = useContext(AuthContext);
@@ -25,7 +26,7 @@ const BookRide = () => {
       const finalFare = rideDetails.fare * seats; // Fare scales by seats? Wait, fare in estimator is for 1 seat. Let's assume standard fare. 
       // Actually Ola/Uber price is per vehicle. If they want seats, maybe it's a shared pool. Let's multiply fare by seats for simplicity or keep base fare. Let's multiply.
       
-      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/rides`, {
+      await axios.post(`${API_URL}/rides`, {
         pickup: rideDetails.pickupText,
         pickupCoords: rideDetails.pickup,
         drop: rideDetails.dropText,

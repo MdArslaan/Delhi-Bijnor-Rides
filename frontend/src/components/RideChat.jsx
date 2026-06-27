@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 
-const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config/api';
 
 const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
   const [messages, setMessages] = useState([]);
@@ -20,7 +20,7 @@ const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
 
     const fetchMessages = async () => {
       try {
-        const res = await axios.get(`${API}/rides/${rideId}/messages`, {
+        const res = await axios.get(`${API_URL}/rides/${rideId}/messages`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setMessages(res.data);
@@ -60,7 +60,7 @@ const RideChat = ({ rideId, isActive, defaultOpen = false }) => {
     setLoading(true);
     try {
       const res = await axios.post(
-        `${API}/rides/${rideId}/messages`,
+        `${API_URL}/rides/${rideId}/messages`,
         { text },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
