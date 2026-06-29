@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
-  "start": "node server.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "nodemailer": "^8.0.10",
+    "resend": "^6.16.0",
     "socket.io": "^4.8.3"
   }
 }
