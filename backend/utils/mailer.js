@@ -1,44 +1,24 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const EMAIL_TIMEOUT_MS = parseInt(process.env.EMAIL_TIMEOUT_MS || '15000', 10);
-
-let _transporter = null;
-
-const getTransporter = () => {
-  if (!_transporter) {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error('EMAIL_USER and EMAIL_PASS must be set in environment variables');
+// Lazily initialise so missing env var is caught at send-time, not startup
+let _resend = null;
+const getResend = () => {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not set in environment variables');
     }
-    _transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS.replace(/\s/g, ''),
-      },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: EMAIL_TIMEOUT_MS,
-      greetingTimeout: EMAIL_TIMEOUT_MS,
-      socketTimeout: EMAIL_TIMEOUT_MS,
-    });
+    _resend = new Resend(process.env.RESEND_API_KEY);
   }
-  return _transporter;
+  return _resend;
 };
 
-const withTimeout = (promise, ms, label) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
-    ),
-  ]);
-
 /**
- * Send an OTP email (with timeout so API never hangs on Render SMTP).
+ * Send an OTP email via Resend.
+ * Works on Render, Vercel, and every cloud host — no SMTP ports needed.
  */
 const sendOtpEmail = async (to, otp, purpose = 'verify') => {
   const isLogin = purpose === 'login';
+
   const subject = isLogin
     ? 'Your Delhi-Bijnor Rides Login OTP'
     : 'Verify your Delhi-Bijnor Rides Account';
@@ -55,27 +35,34 @@ const sendOtpEmail = async (to, otp, purpose = 'verify') => {
       .bdy{padding:32px;text-align:center}
       .otp-box{background:rgba(0,240,255,0.06);border:2px solid rgba(0,240,255,0.4);border-radius:12px;padding:20px 40px;display:inline-block;margin-bottom:24px}
       .otp{font-size:44px;font-weight:900;letter-spacing:14px;color:#00f0ff;font-family:'Courier New',monospace}
+      p{color:#aaa;font-size:14px;line-height:1.6}
     </style></head>
     <body><div class="wrap">
       <div class="hdr"><div class="logo">Delhi-Bijnor <b>Rides</b></div></div>
       <div class="bdy">
-        <h2>${isLogin ? 'Confirm Your Login' : 'Verify Your Email'}</h2>
+        <h2 style="color:#fff">${isLogin ? 'Confirm Your Login' : 'Verify Your Email'}</h2>
         <div class="otp-box"><div class="otp">${otp}</div></div>
-        <p>Valid for 10 minutes. Do not share.</p>
+        <p>Valid for 10 minutes. Do not share this code with anyone.</p>
       </div>
     </div></body></html>
   `;
 
-  const sendPromise = getTransporter().sendMail({
-    from: `"Delhi-Bijnor Rides" <${process.env.EMAIL_USER}>`,
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Delhi-Bijnor Rides <onboarding@resend.dev>';
+
+  const { data, error } = await getResend().emails.send({
+    from: fromAddress,
     to,
     subject,
     html,
   });
 
-  const info = await withTimeout(sendPromise, EMAIL_TIMEOUT_MS, 'Email send');
-  console.log(`OTP email sent to ${to} — messageId: ${info.messageId}`);
-  return info;
+  if (error) {
+    console.error('❌ Resend email error:', error);
+    throw new Error(error.message || 'Failed to send email via Resend');
+  }
+
+  console.log(`✅ OTP email sent to ${to} — id: ${data.id}`);
+  return data;
 };
 
 module.exports = { sendOtpEmail };
