@@ -226,14 +226,26 @@ exports.resendOtp = async (req, res) => {
     user.emailOtpExpiry = getOtpExpiry();
     await user.save();
 
+    const isDevMode = process.env.NODE_ENV !== 'production';
+
     try {
       await sendOtpEmail(user.email, otp, purpose === 'login' ? 'login' : 'verify');
     } catch (mailErr) {
-      console.error('Failed to resend OTP:', mailErr.message);
-      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+      console.error('❌ Failed to resend OTP email:', mailErr.message);
+      if (!isDevMode) {
+        return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+      }
+      // Dev mode: log to console so dev can still test
+      console.log(`\n${'='.repeat(50)}`);
+      console.log(`🔐 DEV MODE — Resent OTP for ${user.email}: ${otp}`);
+      console.log(`${'='.repeat(50)}\n`);
     }
 
-    res.json({ message: `A new OTP has been sent to ${user.email}.` });
+    res.json({
+      message: `A new OTP has been sent to ${user.email}.`,
+      // Expose OTP in dev mode so resend works without SMTP
+      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

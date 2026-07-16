@@ -108,6 +108,7 @@ const Register = () => {
   const [otp, setOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [devOtp, setDevOtp] = useState(null); // set in dev mode when SMTP unavailable
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -137,7 +138,14 @@ const Register = () => {
         setPendingEmail(res.data.email);
         setStep('otp');
         setResendCooldown(60);
-        showToast(`OTP sent to ${res.data.email}`, 'success');
+        // Dev mode: backend returns devOtp when SMTP is unavailable
+        if (res.data.devOtp) {
+          setDevOtp(res.data.devOtp);
+          setOtp(res.data.devOtp);
+          showToast('DEV MODE: OTP auto-filled — no email needed!', 'info');
+        } else {
+          showToast(`OTP sent to ${res.data.email}`, 'success');
+        }
       } else {
         // Fallback: if somehow no OTP required (shouldn't happen)
         login(res.data);
@@ -171,10 +179,18 @@ const Register = () => {
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      await apiClient.post('/api/auth/resend-otp', { userId: pendingUserId, purpose: 'register' });
+      const res = await apiClient.post('/api/auth/resend-otp', { userId: pendingUserId, purpose: 'register' });
       setResendCooldown(60);
-      setOtp('');
-      showToast('A new OTP has been sent to your email.', 'info');
+      // Dev mode: auto-fill the new OTP if SMTP is unavailable
+      if (res.data.devOtp) {
+        setDevOtp(res.data.devOtp);
+        setOtp(res.data.devOtp);
+        showToast('DEV MODE: New OTP auto-filled!', 'info');
+      } else {
+        setOtp('');
+        setDevOtp(null);
+        showToast('A new OTP has been sent to your email.', 'info');
+      }
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to resend OTP.', 'error');
     }
@@ -292,6 +308,14 @@ const Register = () => {
                 <span className="text-brand-accent font-semibold">{pendingEmail}</span>
               </p>
             </div>
+
+            {/* Dev mode banner */}
+            {devOtp && (
+              <div className="mb-4 px-4 py-3 rounded-xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-300 text-xs text-center leading-relaxed">
+                <span className="font-bold text-yellow-400">🛠 DEV MODE</span> — SMTP unavailable.<br />
+                OTP auto-filled: <span className="font-mono font-bold tracking-widest text-yellow-200">{devOtp}</span>
+              </div>
+            )}
 
             <div className="mb-6">
               <label className="text-xs text-gray-400 uppercase tracking-wider mb-4 block text-center">Enter OTP</label>

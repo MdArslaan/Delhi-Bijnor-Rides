@@ -60,6 +60,16 @@ app.use(
 );
 app.use(express.json());
 
+// ── Express v5: Handle JSON parse errors cleanly ──────────────────────────────
+// In Express 5, body-parser errors are thrown (not passed to next), so we need
+// an error-handling middleware right after express.json() to catch SyntaxErrors.
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ message: 'Invalid JSON in request body.' });
+  }
+  next(err);
+});
+
 // Health check (used to wake Render + verify deployment)
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'delhi-bijnor-rides-api' });
@@ -93,6 +103,14 @@ socket.leave(`ride_${rideId}`);
 socket.on('disconnect', () => {
 console.log('User disconnected:', socket.id);
 });
+});
+
+// ── Global error handler (Express v5) ───────────────────────────────────────
+// Must have 4 params so Express recognises it as an error handler.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({ message: err.message || 'Internal server error' });
 });
 
 mongoose.connect(process.env.MONGODB_URI)
