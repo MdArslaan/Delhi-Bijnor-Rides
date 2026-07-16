@@ -1,20 +1,29 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-// Lazily initialise so missing env var is caught at send-time, not startup
-let _resend = null;
-const getResend = () => {
-  if (!_resend) {
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is not set in environment variables');
+// Lazily create transporter — Brevo SMTP works on Render (no port blocking)
+let _transporter = null;
+
+const getTransporter = () => {
+  if (!_transporter) {
+    if (!process.env.BREVO_SMTP_USER || !process.env.BREVO_SMTP_KEY) {
+      throw new Error('BREVO_SMTP_USER and BREVO_SMTP_KEY must be set in environment variables');
     }
-    _resend = new Resend(process.env.RESEND_API_KEY);
+    _transporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_SMTP_USER, // your Brevo account email
+        pass: process.env.BREVO_SMTP_KEY,  // your Brevo SMTP key (not account password)
+      },
+    });
   }
-  return _resend;
+  return _transporter;
 };
 
 /**
- * Send an OTP email via Resend.
- * Works on Render, Vercel, and every cloud host — no SMTP ports needed.
+ * Send an OTP email via Brevo SMTP.
+ * Free plan: 300 emails/day, no domain required, sends to ANY email.
  */
 const sendOtpEmail = async (to, otp, purpose = 'verify') => {
   const isLogin = purpose === 'login';
@@ -40,29 +49,25 @@ const sendOtpEmail = async (to, otp, purpose = 'verify') => {
     <body><div class="wrap">
       <div class="hdr"><div class="logo">Delhi-Bijnor <b>Rides</b></div></div>
       <div class="bdy">
-        <h2 style="color:#fff">${isLogin ? 'Confirm Your Login' : 'Verify Your Email'}</h2>
+        <h2 style="color:#fff;margin-bottom:24px">${isLogin ? 'Confirm Your Login' : 'Verify Your Email'}</h2>
         <div class="otp-box"><div class="otp">${otp}</div></div>
-        <p>Valid for 10 minutes. Do not share this code with anyone.</p>
+        <p>Valid for 10 minutes.<br>Do not share this code with anyone.</p>
       </div>
     </div></body></html>
   `;
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Delhi-Bijnor Rides <onboarding@resend.dev>';
+  const fromName  = 'Delhi-Bijnor Rides';
+  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.BREVO_SMTP_USER;
 
-  const { data, error } = await getResend().emails.send({
-    from: fromAddress,
+  const info = await getTransporter().sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject,
     html,
   });
 
-  if (error) {
-    console.error('❌ Resend email error:', error);
-    throw new Error(error.message || 'Failed to send email via Resend');
-  }
-
-  console.log(`✅ OTP email sent to ${to} — id: ${data.id}`);
-  return data;
+  console.log(`✅ OTP email sent to ${to} — messageId: ${info.messageId}`);
+  return info;
 };
 
 module.exports = { sendOtpEmail };

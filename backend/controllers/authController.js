@@ -80,14 +80,22 @@ exports.register = async (req, res) => {
       });
     }
 
+    const isDevMode = process.env.NODE_ENV !== 'production';
+
     // Send OTP email
     try {
       await sendOtpEmail(user.email, otp, 'verify');
     } catch (mailErr) {
-      console.error('❌ Failed to send registration OTP email:', mailErr.message, mailErr.stack);
-      return res.status(500).json({
-        message: 'Account created but failed to send OTP email. Check your EMAIL_USER and EMAIL_PASS in .env (must be a Gmail App Password). Error: ' + mailErr.message,
-      });
+      console.error('❌ Failed to send registration OTP email:', mailErr.message);
+      if (!isDevMode) {
+        return res.status(500).json({
+          message: 'Account created but failed to send OTP email. Please check your SMTP configuration. Error: ' + mailErr.message,
+        });
+      }
+      // In development: log OTP to console so you can still test
+      console.log(`\n${'='.repeat(50)}`);
+      console.log(`🔐 DEV MODE — OTP for ${user.email}: ${otp}`);
+      console.log(`${'='.repeat(50)}\n`);
     }
 
     res.status(201).json({
@@ -95,6 +103,8 @@ exports.register = async (req, res) => {
       userId: user._id,
       email: user.email,
       message: `OTP sent to ${user.email}. Please verify to complete registration.`,
+      // Expose OTP in dev mode so registration works without SMTP
+      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -123,15 +133,21 @@ exports.login = async (req, res) => {
     user.emailOtpExpiry = otpExpiry;
     await user.save();
 
+    const isDevMode = process.env.NODE_ENV !== 'production';
+
     try {
       await sendOtpEmail(user.email, otp, 'login');
     } catch (mailErr) {
       console.error('❌ Failed to send login OTP email:', mailErr.message);
-      return res.status(500).json({
-        message:
-          'Could not send OTP email. On Render, use a Gmail App Password for EMAIL_PASS and allow SMTP. Error: ' +
-          mailErr.message,
-      });
+      if (!isDevMode) {
+        return res.status(500).json({
+          message: 'Could not send OTP email. Please check your SMTP configuration. Error: ' + mailErr.message,
+        });
+      }
+      // In development: log OTP to console so you can still test
+      console.log(`\n${'='.repeat(50)}`);
+      console.log(`🔐 DEV MODE — OTP for ${user.email}: ${otp}`);
+      console.log(`${'='.repeat(50)}\n`);
     }
 
     res.json({
@@ -139,6 +155,8 @@ exports.login = async (req, res) => {
       userId: user._id,
       email: user.email,
       message: `OTP sent to ${user.email}. Please verify to log in.`,
+      // Expose OTP in dev mode so login works without SMTP
+      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
