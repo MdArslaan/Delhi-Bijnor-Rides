@@ -1,11 +1,9 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { AUTH_URL } from '../config/api';
-import { getApiErrorMessage } from '../lib/apiClient';
+import { apiClient, getApiErrorMessage } from '../lib/apiClient';
 
 // ── Client-side validators ────────────────────────────────────────────────────
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -133,7 +131,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${AUTH_URL}/register`, formData);
+      const res = await apiClient.post('/api/auth/register', formData);
       if (res.data.requiresOtp) {
         setPendingUserId(res.data.userId);
         setPendingEmail(res.data.email);
@@ -157,7 +155,7 @@ const Register = () => {
     if (otp.length !== 6) { showToast('Please enter the complete 6-digit OTP.', 'error'); return; }
     setOtpLoading(true);
     try {
-      const res = await axios.post(`${AUTH_URL}/verify-otp`, { userId: pendingUserId, otp, purpose: 'register' });
+      const res = await apiClient.post('/api/auth/verify-otp', { userId: pendingUserId, otp, purpose: 'register' });
       login(res.data);
       showToast('Account verified! Welcome aboard 🎉', 'success');
       setTimeout(() => navigate(res.data.role === 'Passenger' ? '/book' : '/dashboard'), 800);
@@ -173,7 +171,7 @@ const Register = () => {
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      await axios.post(`${AUTH_URL}/resend-otp`, { userId: pendingUserId, purpose: 'register' });
+      await apiClient.post('/api/auth/resend-otp', { userId: pendingUserId, purpose: 'register' });
       setResendCooldown(60);
       setOtp('');
       showToast('A new OTP has been sent to your email.', 'info');

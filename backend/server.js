@@ -12,14 +12,30 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const app = express();
 const server = http.createServer(app);
 
+const corsOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://delhi-bijnor-rides.vercel.app',
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : null,
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Allow non-browser clients (Postman, etc.)
+  
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  
+  if (corsOrigins.includes(normalizedOrigin)) return true;
+  // Allow all Vercel preview + production URLs
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) return true;
+  
+  return false;
+};
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'https://delhi-bijnor-rides.vercel.app',
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+      callback(null, isAllowedOrigin(origin) ? origin : false);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
@@ -30,25 +46,14 @@ app.use((req, res, next) => {
   next();
 });
 
-const corsOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'https://delhi-bijnor-rides.vercel.app',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (corsOrigins.includes(origin)) return true;
-  // Allow all Vercel preview + production URLs
-  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
-  return true;
-};
-
 app.use(
   cors({
     origin: (origin, callback) => {
-      callback(null, isAllowedOrigin(origin));
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     },
     credentials: true,
   })
