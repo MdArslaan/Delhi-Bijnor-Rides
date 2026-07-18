@@ -9,8 +9,14 @@ const authRoutes = require('./routes/authRoutes');
 const rideRoutes = require('./routes/rideRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const server = http.createServer(app);
+
+// Security Headers
+app.use(helmet());
 
 const corsOrigins = [
   'http://localhost:5173',
@@ -20,12 +26,11 @@ const corsOrigins = [
 ].filter(Boolean);
 
 const isAllowedOrigin = (origin) => {
-  if (!origin) return true; // Allow non-browser clients (Postman, etc.)
+  if (!origin) return process.env.NODE_ENV !== 'production'; // Block non-browser in production
   
   const normalizedOrigin = origin.replace(/\/$/, '');
   
   if (corsOrigins.includes(normalizedOrigin)) return true;
-  // Allow all Vercel preview + production URLs
   if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) return true;
   
   return false;
@@ -58,7 +63,16 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+
+// Payload size limit to prevent DoS
+app.use(express.json({ limit: '10kb' }));
+
+// Auth Rate Limiter
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs for auth routes
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes.' }
+});
 
 // ── Express v5: Handle JSON parse errors cleanly ──────────────────────────────
 // In Express 5, body-parser errors are thrown (not passed to next), so we need
@@ -81,7 +95,7 @@ res.send('Delhi Bijnor Rides Backend Running');
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/payments', paymentRoutes);
 

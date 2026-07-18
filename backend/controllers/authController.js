@@ -103,8 +103,8 @@ exports.register = async (req, res) => {
       userId: user._id,
       email: user.email,
       message: `OTP sent to ${user.email}. Please verify to complete registration.`,
-      // Expose OTP in dev mode so registration works without SMTP
-      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
+      // Dev Mode note (OTP still logs to console in dev)
+      ...(isDevMode && { devNote: 'SMTP unavailable in dev — check server console for OTP.' }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -155,8 +155,8 @@ exports.login = async (req, res) => {
       userId: user._id,
       email: user.email,
       message: `OTP sent to ${user.email}. Please verify to log in.`,
-      // Expose OTP in dev mode so login works without SMTP
-      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
+      // Dev Mode note (OTP still logs to console in dev)
+      ...(isDevMode && { devNote: 'SMTP unavailable in dev — check server console for OTP.' }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -243,8 +243,8 @@ exports.resendOtp = async (req, res) => {
 
     res.json({
       message: `A new OTP has been sent to ${user.email}.`,
-      // Expose OTP in dev mode so resend works without SMTP
-      ...(isDevMode && { devOtp: otp, devNote: 'SMTP unavailable in dev — use this OTP directly.' }),
+      // Dev Mode note (OTP still logs to console in dev)
+      ...(isDevMode && { devNote: 'SMTP unavailable in dev — check server console for OTP.' }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

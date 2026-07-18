@@ -32,7 +32,13 @@ const ensureRideOtp = async (ride) => {
 
 exports.createRide = async (req, res) => {
   try {
-    const { pickup, drop, seats, pickupCoords, dropCoords, distanceKm, fare } = req.body;
+    const { pickup, drop, seats, pickupCoords, dropCoords, distanceKm } = req.body;
+    
+    // Secure Fare Calculation
+    const dist = Number(distanceKm) || 0;
+    const s = Number(seats) || 1;
+    const fareForOne = Math.round((dist / 195.5) * 700);
+    const calculatedFare = fareForOne * s;
 
     const ride = await Ride.create({
       passengerId: req.user.id,
@@ -40,9 +46,9 @@ exports.createRide = async (req, res) => {
       pickupCoords,
       drop,
       dropCoords,
-      distanceKm,
-      seats,
-      fare,
+      distanceKm: dist,
+      seats: s,
+      fare: calculatedFare,
       status: 'Requested',
     });
 
