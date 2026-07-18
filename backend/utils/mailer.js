@@ -5,8 +5,9 @@
 const sendOtpEmail = async (to, otp, purpose = 'verify') => {
   const isLogin = purpose === 'login';
 
-  if (!process.env.BREVO_SMTP_KEY) {
-    throw new Error('BREVO_SMTP_KEY must be set in environment variables');
+  const apiKey = process.env.BREVO_API_KEY || process.env.BREVO_SMTP_KEY;
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY or BREVO_SMTP_KEY must be set in environment variables');
   }
 
   const subject = isLogin
@@ -58,7 +59,7 @@ const sendOtpEmail = async (to, otp, purpose = 'verify') => {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_SMTP_KEY
+        'api-key': apiKey.trim()
       },
       body: JSON.stringify(payload)
     });
