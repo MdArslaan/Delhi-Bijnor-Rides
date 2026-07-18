@@ -1,32 +1,13 @@
-const nodemailer = require('nodemailer');
-
-// Lazily create transporter — Brevo SMTP works on Render (no port blocking)
-let _transporter = null;
-
-const getTransporter = () => {
-  if (!_transporter) {
-    if (!process.env.BREVO_SMTP_USER || !process.env.BREVO_SMTP_KEY) {
-      throw new Error('BREVO_SMTP_USER and BREVO_SMTP_KEY must be set in environment variables');
-    }
-    _transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.BREVO_SMTP_USER, // your Brevo account email
-        pass: process.env.BREVO_SMTP_KEY,  // your Brevo SMTP key (not account password)
-      },
-    });
-  }
-  return _transporter;
-};
-
 /**
- * Send an OTP email via Brevo SMTP.
- * Free plan: 300 emails/day, no domain required, sends to ANY email.
+ * Send an OTP email via Brevo HTTP API.
+ * This bypasses Render's SMTP port 587 blocking by using standard HTTPS (port 443).
  */
 const sendOtpEmail = async (to, otp, purpose = 'verify') => {
   const isLogin = purpose === 'login';
+
+  if (!process.env.BREVO_SMTP_KEY) {
+    throw new Error('BREVO_SMTP_KEY must be set in environment variables');
+  }
 
   const subject = isLogin
     ? 'Your Delhi-Bijnor Rides Login OTP'
@@ -57,17 +38,44 @@ const sendOtpEmail = async (to, otp, purpose = 'verify') => {
   `;
 
   const fromName  = 'Delhi-Bijnor Rides';
-  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.BREVO_SMTP_USER;
+  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.BREVO_SMTP_USER || 'noreply@delhibijnorrides.com';
 
-  const info = await getTransporter().sendMail({
-    from: `"${fromName}" <${fromEmail}>`,
-    to,
-    subject,
-    html,
-  });
+  const payload = {
+    sender: {
+      name: fromName,
+      email: fromEmail
+    },
+    to: [
+      { email: to }
+    ],
+    subject: subject,
+    htmlContent: html
+  };
 
-  console.log(`✅ OTP email sent to ${to} — messageId: ${info.messageId}`);
-  return info;
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_SMTP_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Brevo API Error:', errorData);
+      throw new Error(`Brevo API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ OTP email sent to ${to} — messageId: ${data.messageId}`);
+    return data;
+  } catch (error) {
+    console.error('❌ Failed to send OTP email via Brevo HTTP API:', error.message);
+    throw error;
+  }
 };
 
 module.exports = { sendOtpEmail };
